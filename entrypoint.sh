@@ -30,9 +30,9 @@ else
   # Use merge base for multi-commit PRs, fallback to HEAD~1
   MERGE_BASE=$(git merge-base HEAD origin/"${GITHUB_BASE_REF:-main}" 2>/dev/null || echo "")
   if [ -n "$MERGE_BASE" ]; then
-    CHANGED=$(git diff --name-only HEAD "$MERGE_BASE" -- '*.py' '*.js' '*.ts' '*.tsx' '*.jsx' 2>/dev/null || echo "")
+    CHANGED=$(git diff --name-only HEAD "$MERGE_BASE" -- '*.py' '*.js' '*.ts' '*.tsx' '*.jsx' '*.go' '*.rs' '*.java' 2>/dev/null || echo "")
   else
-    CHANGED=$(git diff --name-only HEAD~1 -- '*.py' '*.js' '*.ts' '*.tsx' '*.jsx' 2>/dev/null || echo "")
+    CHANGED=$(git diff --name-only HEAD~1 -- '*.py' '*.js' '*.ts' '*.tsx' '*.jsx' '*.go' '*.rs' '*.java' 2>/dev/null || echo "")
   fi
   if [ -z "$CHANGED" ]; then
     STORY="No supported source files changed."

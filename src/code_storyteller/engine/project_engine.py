@@ -12,7 +12,7 @@ from code_storyteller.templates.styles import StyleTemplate, get_template
 # Directories/files to skip by default
 SKIP_DIRS = {"__pycache__", "node_modules", ".git", "venv", ".venv", "env", ".env", "dist", "build", ".tox", ".mypy_cache", ".pytest_cache"}
 SKIP_EXTENSIONS = {".pyc", ".pyo", ".so", ".dylib", ".dll", ".class", ".o", ".map", ".min.js", ".min.css"}
-SUPPORTED_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx"}
+SUPPORTED_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java"}
 
 
 @dataclass

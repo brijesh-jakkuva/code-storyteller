@@ -39,19 +39,19 @@
       "editor/context": [
         {
           "command": "codeStoryteller.tellFile",
-          "when": "editorLangId == python || editorLangId == javascript || editorLangId == typescript || editorLangId == typescriptreact || editorLangId == javascriptreact",
+          "when": "editorLangId == python || editorLangId == javascript || editorLangId == typescript || editorLangId == typescriptreact || editorLangId == javascriptreact || editorLangId == go || editorLangId == rust || editorLangId == java",
           "group": "2_workspace"
         },
         {
           "command": "codeStoryteller.tellSelection",
-          "when": "editorHasSelection && (editorLangId == python || editorLangId == javascript || editorLangId == typescript || editorLangId == typescriptreact || editorLangId == javascriptreact)",
+          "when": "editorHasSelection && (editorLangId == python || editorLangId == javascript || editorLangId == typescript || editorLangId == typescriptreact || editorLangId == javascriptreact || editorLangId == go || editorLangId == rust || editorLangId == java)",
           "group": "2_workspace"
         }
       ],
       "explorer/context": [
         {
           "command": "codeStoryteller.tellFile",
-          "when": "resourceExtname == .py || resourceExtname == .js || resourceExtname == .ts || resourceExtname == .tsx || resourceExtname == .jsx",
+          "when": "resourceExtname == .py || resourceExtname == .js || resourceExtname == .ts || resourceExtname == .tsx || resourceExtname == .jsx || resourceExtname == .go || resourceExtname == .rs || resourceExtname == .java",
           "group": "2_workspace"
         },
         {

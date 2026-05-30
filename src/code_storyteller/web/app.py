@@ -45,7 +45,7 @@ async def api_tell(
     if len(content) > MAX_UPLOAD_SIZE:
         raise HTTPException(413, f"File too large (max {MAX_UPLOAD_SIZE // 1024}KB)")
     suffix = Path(file.filename).suffix
-    if suffix not in (".py", ".js", ".ts", ".tsx", ".jsx"):
+    if suffix not in (".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java"):
         raise HTTPException(400, f"Unsupported file type: {suffix}")
 
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False, mode="wb") as tmp:
@@ -114,7 +114,7 @@ async def api_project(
         if len(content) > MAX_UPLOAD_SIZE:
             raise HTTPException(413, f"File too large (max {MAX_UPLOAD_SIZE // 1024}KB)")
         suffix = Path(upload.filename).suffix
-        if suffix not in (".py", ".js", ".ts", ".tsx", ".jsx"):
+        if suffix not in (".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java"):
             continue
         safe_name = Path(upload.filename).name
         tmp_path = os.path.join(tmp_dir, safe_name)
@@ -238,9 +238,9 @@ def _render_dashboard(styles: list[str]) -> str:
     <div class="file-drop" id="tell-drop">
       <div class="icon">📄</div>
       <p>Drop a file here or click to upload</p>
-      <p style="font-size:12px;margin-top:4px;">.py .js .ts .tsx .jsx</p>
+      <p style="font-size:12px;margin-top:4px;">.py .js .ts .tsx .jsx .go .rs .java</p>
     </div>
-    <input type="file" id="tell-file" accept=".py,.js,.ts,.tsx,.jsx" style="display:none">
+    <input type="file" id="tell-file" accept=".py,.js,.ts,.tsx,.jsx,.go,.rs,.java" style="display:none">
     <button class="btn" id="tell-btn" disabled>🎬 Tell Story</button>
     <div class="loading" id="tell-loading"><div class="spinner"></div> Crafting story...</div>
     <div class="error" id="tell-error"></div>
@@ -255,13 +255,13 @@ def _render_dashboard(styles: list[str]) -> str:
       <div class="icon">📄</div>
       <p>Drop old file here</p>
     </div>
-    <input type="file" id="diff-file-old" accept=".py,.js,.ts,.tsx,.jsx" style="display:none">
+    <input type="file" id="diff-file-old" accept=".py,.js,.ts,.tsx,.jsx,.go,.rs,.java" style="display:none">
     <label style="margin-top:16px;">New Version</label>
     <div class="file-drop" id="diff-drop-new">
       <div class="icon">📄</div>
       <p>Drop new file here</p>
     </div>
-    <input type="file" id="diff-file-new" accept=".py,.js,.ts,.tsx,.jsx" style="display:none">
+    <input type="file" id="diff-file-new" accept=".py,.js,.ts,.tsx,.jsx,.go,.rs,.java" style="display:none">
     <button class="btn" id="diff-btn" disabled>🔀 Narrate Changes</button>
     <div class="loading" id="diff-loading"><div class="spinner"></div> Narrating changes...</div>
     <div class="error" id="diff-error"></div>
@@ -278,7 +278,7 @@ def _render_dashboard(styles: list[str]) -> str:
       <div class="icon">📁</div>
       <p>Drop multiple files here or click to upload</p>
     </div>
-    <input type="file" id="project-files" accept=".py,.js,.ts,.tsx,.jsx" multiple style="display:none">
+    <input type="file" id="project-files" accept=".py,.js,.ts,.tsx,.jsx,.go,.rs,.java" multiple style="display:none">
     <div id="project-file-list" style="margin-top:8px;color:#666;font-size:13px;"></div>
     <button class="btn" id="project-btn" disabled>📁 Tell Project Story</button>
     <div class="loading" id="project-loading"><div class="spinner"></div> Crafting project story...</div>

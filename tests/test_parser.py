@@ -198,3 +198,187 @@ def process(items):
             assert "for" in block.control_flow
         finally:
             os.unlink(f.name)
+
+def test_parse_go_function():
+    source = """
+package main
+
+import "fmt"
+
+func greet(name string) string {
+    return fmt.Sprintf("Hello, %s", name)
+}
+
+func main() {
+    greet("World")
+}
+"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.go', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert parsed.language == Language.GO
+            names = [b.name for b in parsed.blocks]
+            assert "greet" in names
+            assert "main" in names
+            greet_block = [b for b in parsed.blocks if b.name == "greet"][0]
+            assert greet_block.block_type == BlockType.FUNCTION
+        finally:
+            os.unlink(f.name)
+
+def test_parse_go_struct():
+    source = '''
+package main
+
+type Server struct {
+    Host string
+    Port int
+}
+
+func (s *Server) Listen() error {
+    return nil
+}
+'''
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.go', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert parsed.language == Language.GO
+            names = [b.name for b in parsed.blocks]
+            assert "Server" in names
+        finally:
+            os.unlink(f.name)
+
+def test_parse_go_imports():
+    source = """
+package main
+
+import "fmt"
+import "os"
+"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.go', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert "fmt" in parsed.imports
+            assert "os" in parsed.imports
+        finally:
+            os.unlink(f.name)
+
+def test_parse_rust_function():
+    source = """
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+pub fn greet(name: &str) {
+    println!("Hello, {}", name);
+}
+"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.rs', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert parsed.language == Language.RUST
+            names = [b.name for b in parsed.blocks]
+            assert "add" in names
+            assert "greet" in names
+            add_block = [b for b in parsed.blocks if b.name == "add"][0]
+            assert add_block.block_type == BlockType.FUNCTION
+        finally:
+            os.unlink(f.name)
+
+def test_parse_rust_struct():
+    source = """
+pub struct Point {
+    x: f64,
+    y: f64,
+}
+
+impl Point {
+    fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
+    }
+}
+"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.rs', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert parsed.language == Language.RUST
+            names = [b.name for b in parsed.blocks]
+            assert "Point" in names
+        finally:
+            os.unlink(f.name)
+
+def test_parse_rust_imports():
+    source = """
+use std::collections::HashMap;
+use std::fmt;
+use serde::Deserialize;
+"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.rs', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert "std" in parsed.imports
+            assert "serde" in parsed.imports
+        finally:
+            os.unlink(f.name)
+
+def test_parse_java_class():
+    source = """
+public class Calculator {
+    private int value;
+
+    public Calculator() {
+        this.value = 0;
+    }
+
+    public int add(int a, int b) {
+        return a + b;
+    }
+}
+"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.java', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert parsed.language == Language.JAVA
+            names = [b.name for b in parsed.blocks]
+            assert "Calculator" in names
+        finally:
+            os.unlink(f.name)
+
+def test_parse_java_imports():
+    source = """
+import java.util.List;
+import java.util.Map;
+import static java.lang.Math.PI;
+"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.java', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert "java" in parsed.imports
+        finally:
+            os.unlink(f.name)
+
+def test_unsupported_extension_c():
+    source = "int main() { return 0; }"
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as f:
+        f.write(source)
+        f.flush()
+        try:
+            parsed = parse_file(f.name)
+            assert parsed.language == Language.UNKNOWN
+        finally:
+            os.unlink(f.name)

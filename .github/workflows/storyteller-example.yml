@@ -11,6 +11,9 @@ on:
       - "**.ts"
       - "**.tsx"
       - "**.jsx"
+      - "**.go"
+      - "**.rs"
+      - "**.java"
 
 jobs:
   narrate:

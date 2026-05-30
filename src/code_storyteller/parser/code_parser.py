@@ -19,6 +19,9 @@ class Language(Enum):
     PYTHON = "python"
     JAVASCRIPT = "javascript"
     TYPESCRIPT = "typescript"
+    GO = "go"
+    RUST = "rust"
+    JAVA = "java"
     UNKNOWN = "unknown"
 
 
@@ -28,6 +31,9 @@ EXTENSION_MAP = {
     ".ts": Language.TYPESCRIPT,
     ".tsx": Language.TYPESCRIPT,
     ".jsx": Language.JAVASCRIPT,
+    ".go": Language.GO,
+    ".rs": Language.RUST,
+    ".java": Language.JAVA,
 }
 
 
@@ -92,12 +98,18 @@ def _tree_sitter_parse(source: str, language: Language) -> list[CodeBlock]:
     import tree_sitter_python as tspython
     import tree_sitter_javascript as tsjavascript
     import tree_sitter_typescript as tstypescript
+    import tree_sitter_go as tsgo
+    import tree_sitter_rust as tsrust
+    import tree_sitter_java as tsjava
     from tree_sitter import Language as TSLanguage, Parser
 
     lang_map = {
         Language.PYTHON: TSLanguage(tspython.language()),
         Language.JAVASCRIPT: TSLanguage(tsjavascript.language()),
         Language.TYPESCRIPT: TSLanguage(tstypescript.language_typescript()),
+        Language.GO: TSLanguage(tsgo.language()),
+        Language.RUST: TSLanguage(tsrust.language()),
+        Language.JAVA: TSLanguage(tsjava.language()),
     }
 
     ts_lang = lang_map.get(language)
@@ -149,7 +161,7 @@ def _tree_sitter_parse(source: str, language: Language) -> list[CodeBlock]:
                 docstring=docstring,
             )
             blocks.append(block)
-        elif node.type in ("class_definition", "class_declaration"):
+        elif node.type in ("class_definition", "class_declaration", "interface_declaration", "enum_declaration"):
             name = _extract_name(node, source_bytes)
             docstring = _extract_docstring(node, source_bytes)
             block = CodeBlock(
@@ -160,6 +172,86 @@ def _tree_sitter_parse(source: str, language: Language) -> list[CodeBlock]:
                 end_line=node.end_point[0] + 1,
                 language=language,
                 docstring=docstring,
+            )
+            blocks.append(block)
+        elif node.type in ("struct_item", "impl_item"):
+            # Rust structs and impl blocks
+            name = _extract_name(node, source_bytes)
+            block = CodeBlock(
+                name=name,
+                block_type=BlockType.CLASS,
+                code=_slice(node.start_byte, node.end_byte),
+                start_line=node.start_point[0] + 1,
+                end_line=node.end_point[0] + 1,
+                language=language,
+            )
+            blocks.append(block)
+        elif node.type == "type_declaration" and language == Language.GO:
+            # Go: type Server struct { ... } — extract name from type_spec child
+            for child in node.children:
+                if child.type == "type_spec":
+                    name = _extract_name(child, source_bytes)
+                    block = CodeBlock(
+                        name=name,
+                        block_type=BlockType.CLASS,
+                        code=_slice(node.start_byte, node.end_byte),
+                        start_line=node.start_point[0] + 1,
+                        end_line=node.end_point[0] + 1,
+                        language=language,
+                    )
+                    blocks.append(block)
+                    break
+        elif node.type == "function_item":
+            # Rust functions
+            name = _extract_name(node, source_bytes)
+            block = CodeBlock(
+                name=name,
+                block_type=BlockType.FUNCTION,
+                code=_slice(node.start_byte, node.end_byte),
+                start_line=node.start_point[0] + 1,
+                end_line=node.end_point[0] + 1,
+                language=language,
+                inputs=_extract_params(node, source_bytes),
+                outputs=_extract_returns(node, source_bytes),
+                calls=_extract_calls(node, source_bytes),
+                control_flow=_extract_control_flow(node, source_bytes),
+            )
+            blocks.append(block)
+        elif node.type == "method_declaration" and language == Language.GO:
+            # Go methods (receiver functions): func (r *recv) name(...)
+            # Name is inside a field_identifier child, not direct identifier
+            method_name = "<anonymous>"
+            for child in node.children:
+                if child.type == "field_identifier":
+                    method_name = source_bytes[child.start_byte:child.end_byte].decode("utf8")
+                    break
+            block = CodeBlock(
+                name=method_name,
+                block_type=BlockType.FUNCTION,
+                code=_slice(node.start_byte, node.end_byte),
+                start_line=node.start_point[0] + 1,
+                end_line=node.end_point[0] + 1,
+                language=language,
+                inputs=_extract_params(node, source_bytes),
+                outputs=_extract_returns(node, source_bytes),
+                calls=_extract_calls(node, source_bytes),
+                control_flow=_extract_control_flow(node, source_bytes),
+            )
+            blocks.append(block)
+        elif node.type == "constructor_declaration":
+            # Java constructors
+            name = _extract_name(node, source_bytes)
+            block = CodeBlock(
+                name=name,
+                block_type=BlockType.FUNCTION,
+                code=_slice(node.start_byte, node.end_byte),
+                start_line=node.start_point[0] + 1,
+                end_line=node.end_point[0] + 1,
+                language=language,
+                inputs=_extract_params(node, source_bytes),
+                outputs=_extract_returns(node, source_bytes),
+                calls=_extract_calls(node, source_bytes),
+                control_flow=_extract_control_flow(node, source_bytes),
             )
             blocks.append(block)
         elif node.type == "variable_declarator":
@@ -208,7 +300,7 @@ def _extract_docstring(node, source_bytes: bytes) -> Optional[str]:
 
 def _extract_name(node, source_bytes: bytes) -> str:
     for child in node.children:
-        if child.type == "identifier":
+        if child.type in ("identifier", "type_identifier"):
             return source_bytes[child.start_byte:child.end_byte].decode("utf8")
     return "<anonymous>"
 
@@ -353,6 +445,30 @@ def _extract_imports(source: str, language: Language) -> list[str]:
                 top_level = item.split('.')[0]
                 if top_level:  # avoid empty strings
                     imports.append(top_level)
+    elif language == Language.GO:
+        # import "package" or import ( "pkg1" "pkg2" )
+        for match in re.finditer(r'^\s*import\s+(?:\(\s*)?(?:["\']([^"\']+)["\']|\"([^\"]+)\")', source, re.MULTILINE):
+            pkg = match.group(1) or match.group(2)
+            if pkg:
+                # Take top-level: github.com/user/pkg → github.com
+                # Or stdlib: fmt → fmt
+                top = pkg.split("/")[0] if "/" not in pkg else pkg.split("/")[0]
+                imports.append(pkg if "/" in pkg else pkg.strip('"'))
+    elif language == Language.RUST:
+        # use crate::module or use std::module
+        for match in re.finditer(r'^\s*use\s+([\w:]+)', source, re.MULTILINE):
+            path = match.group(1)
+            top = path.split("::")[0]
+            imports.append(top)
+        # extern crate
+        for match in re.finditer(r'^\s*extern\s+crate\s+(\w+)', source, re.MULTILINE):
+            imports.append(match.group(1))
+    elif language == Language.JAVA:
+        # import com.pkg.Class;
+        for match in re.finditer(r'^\s*import\s+(?:static\s+)?([\w.]+)', source, re.MULTILINE):
+            fqn = match.group(1)
+            top = fqn.split(".")[0]
+            imports.append(top)
     else:
         for match in re.finditer(r'import\s+.*?\s+from\s+["\']([^"\']+)["\']', source):
             imports.append(match.group(1))

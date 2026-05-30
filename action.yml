@@ -1,0 +1,29 @@
+name: "Code Storyteller"
+description: "Narrate code changes in pull requests as stories"
+author: "code-storyteller"
+
+inputs:
+  style:
+    description: "Story style"
+    required: false
+    default: "heist"
+  path:
+    description: "Path to analyze (file or directory). Defaults to changed files."
+    required: false
+    default: ""
+  output:
+    description: "Output mode: `comment` (post PR comment) or `stdout`"
+    required: false
+    default: "comment"
+  model:
+    description: "Model to use"
+    required: false
+    default: "claude-sonnet-4-6"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+
+branding:
+  icon: "book-open"
+  color: "purple"

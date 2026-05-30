@@ -1,0 +1,98 @@
+{
+  "name": "code-storyteller",
+  "displayName": "Code Storyteller",
+  "description": "Explain code like a story — heist movies, recipes, 5yo, and more",
+  "version": "0.1.0",
+  "publisher": "code-storyteller",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other", "Education", "Machine Learning"],
+  "keywords": ["story", "explain", "code", "analogy", "llm"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeStoryteller.tellFile",
+        "title": "Code Storyteller: Tell Story for This File",
+        "icon": "🎬"
+      },
+      {
+        "command": "codeStoryteller.tellSelection",
+        "title": "Code Storyteller: Tell Story for Selection"
+      },
+      {
+        "command": "codeStoryteller.tellDiff",
+        "title": "Code Storyteller: Diff Story (Git)"
+      },
+      {
+        "command": "codeStoryteller.tellProject",
+        "title": "Code Storyteller: Tell Story for Project"
+      },
+      {
+        "command": "codeStoryteller.showHistory",
+        "title": "Code Storyteller: Show History"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "codeStoryteller.tellFile",
+          "when": "editorLangId == python || editorLangId == javascript || editorLangId == typescript || editorLangId == typescriptreact || editorLangId == javascriptreact",
+          "group": "2_workspace"
+        },
+        {
+          "command": "codeStoryteller.tellSelection",
+          "when": "editorHasSelection && (editorLangId == python || editorLangId == javascript || editorLangId == typescript || editorLangId == typescriptreact || editorLangId == javascriptreact)",
+          "group": "2_workspace"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "codeStoryteller.tellFile",
+          "when": "resourceExtname == .py || resourceExtname == .js || resourceExtname == .ts || resourceExtname == .tsx || resourceExtname == .jsx",
+          "group": "2_workspace"
+        },
+        {
+          "command": "codeStoryteller.tellProject",
+          "when": "explorerResourceIsFolder",
+          "group": "2_workspace"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Code Storyteller",
+      "properties": {
+        "codeStoryteller.style": {
+          "type": "string",
+          "default": "heist",
+          "enum": ["heist", "recipe", "5yo", "pm", "sports"],
+          "description": "Default story style"
+        },
+        "codeStoryteller.model": {
+          "type": "string",
+          "default": "claude-sonnet-4-6",
+          "description": "Model to use (e.g. claude-sonnet-4-6 or open_router/...)"
+        },
+        "codeStoryteller.cliPath": {
+          "type": "string",
+          "default": "storytell",
+          "description": "Path to storytell CLI binary"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

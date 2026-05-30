@@ -1,0 +1,33 @@
+# Example: Add this to your repo's .github/workflows/
+# This file is a reference — copy it to your own repo to use.
+
+name: Code Storyteller
+
+on:
+  pull_request:
+    paths:
+      - "**.py"
+      - "**.js"
+      - "**.ts"
+      - "**.tsx"
+      - "**.jsx"
+
+jobs:
+  narrate:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Run Code Storyteller
+        uses: ./
+        with:
+          style: heist
+          output: comment
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # or OPENROUTER_API_KEY if using OpenRouter

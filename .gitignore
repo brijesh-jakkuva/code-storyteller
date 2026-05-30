@@ -1,0 +1,19 @@
+.env
+__pycache__/
+*.pyc
+dist/
+build/
+*.egg-info/
+.claude-mem/
+.pytest_cache/
+*.db
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+# VS Code extension build
+vscode/out/
+vscode/*.vsix
+vscode/node_modules/

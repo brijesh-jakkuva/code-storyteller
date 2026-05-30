@@ -82,3 +82,28 @@ def test_generate_story_with_block():
         story = generate_story(SAMPLE_PARSED, "heist", block=block)
         assert story == "A story about hello."
         mock_gen.assert_called_once()
+
+def test_detective_style_loads():
+    """Detective style should be registered and loadable."""
+    template = get_template("detective")
+    assert template.name == "detective"
+    assert template.character_map["function"] == "suspect"
+    assert "The Case" in template.system_prompt
+    assert "The Reveal" in template.system_prompt
+
+def test_fairy_tale_style_loads():
+    """Fairy tale style should be registered and loadable."""
+    template = get_template("fairy_tale")
+    assert template.name == "fairy_tale"
+    assert template.character_map["function"] == "hero"
+    assert "The Kingdom" in template.system_prompt
+    assert "Happy Ending" in template.system_prompt
+
+def test_all_seven_styles_registered():
+    """All 7 styles should be available."""
+    from code_storyteller.templates.styles import list_styles
+    styles = list_styles()
+    assert len(styles) == 7
+    assert "detective" in styles
+    assert "fairy_tale" in styles
+    assert set(styles) == {"heist", "recipe", "5yo", "pm", "sports", "detective", "fairy_tale"}

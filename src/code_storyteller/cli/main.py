@@ -1,5 +1,6 @@
 """CLI entry point — `storytell` command."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -16,7 +17,7 @@ import anthropic
 
 from code_storyteller.parser.code_parser import parse_file, BlockType
 from code_storyteller.templates.styles import list_styles, get_template
-from code_storyteller.engine.story_engine import stream_story, generate_story
+from code_storyteller.engine.story_engine import stream_story, generate_story, call_llm_with_history
 from code_storyteller.engine.map_engine import generate_ascii_map
 from code_storyteller.engine.diff_engine import compute_diff, build_diff_prompt
 from code_storyteller.engine.project_engine import walk_project, build_project_prompt
@@ -141,6 +142,147 @@ def _call_llm_raw(system_prompt: str, user_prompt: str) -> str | None:
     return call_llm(system_prompt, user_prompt)
 
 
+def _interactive_loop(parsed: "ParsedFile", style: str, block: "CodeBlock | None", model: str | None = None):
+    """Run an interactive Q&A loop after the initial story.
+
+    Special commands:
+        !block <name>  — switch focus to a different function/class
+        !blocks         — list available blocks in the file
+        !style <name>   — switch story style mid-conversation
+        !code           — show the current focused code
+        quit / exit     — leave interactive mode
+    """
+    template = get_style_template(style)
+    system_prompt = _build_interactive_system_prompt(template, parsed, block)
+    history: list[dict] = []
+
+    # Build initial context as first user message
+    context_msg = _build_interactive_context(parsed, block)
+    if context_msg:
+        history.append({"role": "user", "content": context_msg})
+        # Get initial response (reuse the story as first assistant reply)
+        # We don't re-call LLM — user already has the story. Start Q&A directly.
+
+    console.print()
+    console.print(Panel(
+        "[dim]Ask follow-up questions about this code. "
+        "Type [bold]!blocks[/] to see blocks, [bold]!block <name>[/] to focus, "
+        "[bold]!style <name>[/] to switch style, [bold]quit[/] to exit.[/]",
+        title="💬 Interactive Mode",
+        border_style="cyan",
+    ))
+
+    current_block = block
+    current_style = style
+
+    while True:
+        try:
+            user_input = console.input("[bold cyan][storytell][/] > ").strip()
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[dim]Exiting interactive mode.[/]")
+            break
+
+        if not user_input:
+            continue
+        if user_input.lower() in ("quit", "exit", "q"):
+            console.print("[dim]Exiting interactive mode.[/]")
+            break
+
+        # --- Special commands ---
+        if user_input == "!blocks":
+            _list_blocks(parsed)
+            continue
+        if user_input.startswith("!block "):
+            name = user_input[7:].strip()
+            found = _pick_block(parsed, name)
+            if found:
+                current_block = found
+                template = get_style_template(current_style)
+                system_prompt = _build_interactive_system_prompt(template, parsed, current_block)
+                history.append({"role": "user", "content": f"[System: Focus changed to block '{name}']"})
+                console.print(f"[green]✓ Focus switched to [bold]{name}[/][/]")
+            else:
+                console.print(f"[yellow]Block '{name}' not found. Use !blocks to see available.[/]")
+            continue
+        if user_input.startswith("!style "):
+            new_style = user_input[7:].strip()
+            try:
+                template = get_style_template(new_style)
+                current_style = new_style
+                system_prompt = _build_interactive_system_prompt(template, parsed, current_block)
+                history.append({"role": "user", "content": f"[System: Style changed to '{new_style}']"})
+                console.print(f"[green]✓ Style switched to [bold]{new_style}[/][/]")
+            except ValueError as e:
+                console.print(f"[yellow]{e}[/]")
+            continue
+        if user_input == "!code":
+            code = current_block.code if current_block else parsed.raw_source
+            lang = parsed.language.value
+            console.print(Syntax(code, lang, theme="monokai", line_numbers=True))
+            continue
+
+        # Regular question
+        history.append({"role": "user", "content": user_input})
+
+        try:
+            response = call_llm_with_history(system_prompt, history, model=model)
+            history.append({"role": "assistant", "content": response})
+            console.print()
+            console.print(Panel(Markdown(response), border_style="green", padding=(1, 2)))
+        except (EnvironmentError, Exception) as e:
+            console.print(f"[red]Error: {e}[/]")
+            # Remove failed user message from history
+            if history and history[-1]["role"] == "user":
+                history.pop()
+
+
+def get_style_template(style: str):
+    """Get template by name, raising ValueError if not found."""
+    try:
+        return get_template(style)
+    except ValueError:
+        available = ", ".join(list_styles())
+        raise ValueError(f"Unknown style '{style}'. Available: {available}")
+
+
+def _build_interactive_system_prompt(template, parsed, block) -> str:
+    """Build system prompt for interactive follow-up conversation."""
+    focus_hint = ""
+    if block:
+        focus_hint = f"\nCURRENT FOCUS: The user is looking at the '{block.name}' function ({block.block_type.value})."
+    return (
+        template.system_prompt
+        + "\n\n"
+        + "You are now in INTERACTIVE MODE. The user has already seen the initial story. "
+        "Answer their follow-up questions concisely. Use the same style/voice. "
+        "Keep responses shorter than the initial story — aim for 2-4 sentences unless "
+        "the user asks for detail. Reference the code directly when helpful."
+        + focus_hint
+    )
+
+
+def _build_interactive_context(parsed, block) -> str:
+    """Build the initial context message for interactive mode."""
+    code = block.code if block else parsed.raw_source
+    section = f"block '{block.name}'" if block else "full file"
+    return (
+        f"Code ({parsed.language.value}, {section}):\n```{parsed.language.value}\n{code}\n```\n\n"
+        "Initial context set. I'm ready for follow-up questions."
+    )
+
+
+def _list_blocks(parsed):
+    """Print available blocks in the file."""
+    console.print(f"\n[bold]Blocks in {Path(parsed.filepath).name}:[/]")
+    for b in parsed.blocks:
+        icon = "📦" if b.block_type == BlockType.CLASS else "⚡"
+        detail = f"lines {b.start_line}-{b.end_line}"
+        if b.inputs:
+            detail += f" | in: {', '.join(b.inputs)}"
+        console.print(f"  {icon} [bold]{b.name}[/] — {detail}")
+    console.print()
+
+
 @click.group()
 def main():
     """🎬 Code Storyteller — Explain code like a story"""
@@ -153,7 +295,8 @@ def main():
 @click.option("--block", "-b", default=None, help="Specific function/class name")
 @click.option("--focus", "-f", default=None, help="Focus file for project stories")
 @click.option("--no-stream", is_flag=True, help="Disable streaming output")
-def tell(file, style, block, focus, no_stream):
+@click.option("--interactive", "-i", is_flag=True, help="Enter interactive Q&A mode after story")
+def tell(file, style, block, focus, no_stream, interactive):
     """Tell the story of a code file or project directory."""
     console.print(BANNER)
     path = Path(file)
@@ -165,7 +308,7 @@ def tell(file, style, block, focus, no_stream):
             console.print(f"[yellow]No supported source files found in {file}[/]")
             return
 
-        template = get_template(style)
+        template = get_style_template(style)
         user_prompt = build_project_prompt(graph, style, focus=focus)
 
         console.print()
@@ -201,6 +344,11 @@ def tell(file, style, block, focus, no_stream):
         story = _render_story(parsed, style, picked, stream=not no_stream)
         if story:
             save_story(file, style, block or "__all__", story, rating=None)
+
+        # Interactive mode: enter REPL after story
+        if interactive and story:
+            model = os.environ.get("MODEL", "claude-sonnet-4-6")
+            _interactive_loop(parsed, style, picked, model=model)
 
 
 @main.command()

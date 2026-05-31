@@ -48,6 +48,49 @@ def call_llm(system_prompt: str, user_prompt: str, model: str | None = None) -> 
         return resp.content[0].text
 
 
+def call_llm_with_history(system_prompt: str, messages: list[dict], model: str | None = None) -> str:
+    """Call LLM with full message history for multi-turn conversations.
+
+    Args:
+        system_prompt: System prompt string
+        messages: List of {"role": "user"|"assistant", "content": str} dicts
+        model: Model identifier (auto-detected from env MODEL if not set)
+    """
+    if model is None:
+        model = os.environ.get("MODEL", "claude-sonnet-4-6")
+
+    if model.startswith("open_router/"):
+        model_id = model[len("open_router/"):]
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise EnvironmentError("OPENROUTER_API_KEY not set.")
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        msgs: list[dict] = []
+        if system_prompt:
+            msgs.append({"role": "system", "content": system_prompt})
+        msgs.extend(messages)
+        payload = {"model": model_id, "messages": msgs, "max_tokens": 2048}
+        resp = httpx.post(url, headers=headers, json=payload, timeout=60.0)
+        resp.raise_for_status()
+        data = resp.json()
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError):
+            raise ValueError(f"Bad OpenRouter response: {str(data)[:200]}")
+    else:
+        import anthropic as _anthropic
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise EnvironmentError("ANTHROPIC_API_KEY not set.")
+        client = _anthropic.Anthropic(api_key=api_key)
+        kwargs: dict = {"model": model, "max_tokens": 2048, "messages": messages}
+        if system_prompt:
+            kwargs["system"] = system_prompt
+        resp = client.messages.create(**kwargs)
+        return resp.content[0].text
+
+
 def _get_anthropic_client():
     import anthropic
     api_key = os.environ.get("ANTHROPIC_API_KEY")

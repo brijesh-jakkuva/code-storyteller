@@ -5,7 +5,7 @@ Explain code like a story — with analogies, characters, and narrative.
 ## Install
 
 ```bash
-pip install -e .
+pip install code-storyteller
 ```
 
 ## Setup
@@ -25,6 +25,11 @@ storytell tell auth.py --as heist
 storytell tell sort.py --as recipe
 storytell tell api.js --as 5yo
 storytell tell handler.ts --as pm
+storytell tell main.go --as detective
+storytell tell server.rs --as fairy_tale
+
+# Interactive mode — ask follow-up questions after the story
+storytell tell auth.py --as heist --interactive
 
 # Specific function/class only
 storytell tell auth.py --as heist --block validate_token
@@ -63,6 +68,8 @@ storytell memory
 | `5yo` | Explain like you're 5 years old |
 | `pm` | Explain like a product manager |
 | `sports` | Code as live sports commentary |
+| `detective` | Code as a noir detective mystery |
+| `fairy_tale` | Code as a fairy tale quest |
 
 ## Options
 
@@ -75,12 +82,15 @@ storytell memory
 - Python (`.py`)
 - JavaScript (`.js`, `.jsx`)
 - TypeScript (`.ts`, `.tsx`)
+- Go (`.go`)
+- Rust (`.rs`)
+- Java (`.java`)
 
 ## Tests
 
 ```bash
 python3 -m pytest tests/ -v
-# 25 tests passing
+# 80 tests passing
 ```
 
 ## Usage (continued)

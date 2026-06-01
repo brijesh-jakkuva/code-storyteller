@@ -1,8 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "code-storyteller"
 version = "0.1.0"
 description = "Explain code like a story — with analogies, characters, and narrative"
+readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.10"
+authors = [
+    {name = "Brijesh Kumar Jakkuva", email = "brijeshjakkuva@gmail.com"},
+]
+keywords = [
+    "cli", "llm", "code-explanation", "anthropic", "openrouter",
+    "storytelling", "developer-tools", "code-analysis", "tree-sitter",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Utilities",
+]
 dependencies = [
     "rich>=13.7",
     "anthropic>=0.34",
@@ -23,6 +47,7 @@ web = ["fastapi>=0.110", "uvicorn>=0.27", "python-multipart>=0.0.9"]
 [project.scripts]
 storytell = "code_storyteller.cli.main:main"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[project.urls]
+Homepage = "https://github.com/brijesh-jakkuva/code-storyteller"
+Repository = "https://github.com/brijesh-jakkuva/code-storyteller"
+Issues = "https://github.com/brijesh-jakkuva/code-storyteller/issues"

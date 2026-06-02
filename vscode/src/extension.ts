@@ -173,7 +173,7 @@ async function tellDiff() {
 
   try {
     // Get list of modified files
-    const { stdout: gitStatus } = await execAsync("git diff --name-only HEAD", { cwd });
+    const { stdout: gitStatus } = await execFileAsync("git diff --name-only HEAD", { cwd });
     const changedFiles = gitStatus.trim().split("\n").filter(Boolean);
 
     if (changedFiles.length === 0) {
@@ -191,7 +191,7 @@ async function tellDiff() {
 
     // Get old version from HEAD
     try {
-      const { stdout: oldContent } = await execAsync(`git show "HEAD:${picked}"`, { cwd });
+      const { stdout: oldContent } = await execFileAsync(`git show "HEAD:${picked}"`, { cwd });
       fs.writeFileSync(tmpOld, oldContent);
     } catch {
       // File might be new — create empty old

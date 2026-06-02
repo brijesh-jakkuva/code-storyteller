@@ -1,14 +1,39 @@
 {
   "name": "code-storyteller",
   "displayName": "Code Storyteller",
-  "description": "Explain code like a story — heist movies, recipes, 5yo, and more",
+  "description": "Explain code like a story — heist movies, recipes, detective mysteries, fairy tales, and more",
   "version": "0.1.0",
   "publisher": "code-storyteller",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brijesh-jakkuva/code-storyteller"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other", "Education", "Machine Learning"],
-  "keywords": ["story", "explain", "code", "analogy", "llm"],
+  "categories": [
+    "Other",
+    "Education",
+    "Machine Learning",
+    "Visualization"
+  ],
+  "keywords": [
+    "story",
+    "explain",
+    "code",
+    "analogy",
+    "llm",
+    "claude",
+    "documentation",
+    "code-review",
+    "narrative"
+  ],
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
@@ -16,7 +41,7 @@
       {
         "command": "codeStoryteller.tellFile",
         "title": "Code Storyteller: Tell Story for This File",
-        "icon": "🎬"
+        "icon": "$(play-circle)"
       },
       {
         "command": "codeStoryteller.tellSelection",
@@ -67,7 +92,15 @@
         "codeStoryteller.style": {
           "type": "string",
           "default": "heist",
-          "enum": ["heist", "recipe", "5yo", "pm", "sports"],
+          "enum": [
+            "heist",
+            "recipe",
+            "5yo",
+            "pm",
+            "sports",
+            "detective",
+            "fairy_tale"
+          ],
           "description": "Default story style"
         },
         "codeStoryteller.model": {

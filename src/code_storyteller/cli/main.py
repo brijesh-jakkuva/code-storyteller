@@ -21,6 +21,7 @@ from code_storyteller.engine.story_engine import stream_story, generate_story, c
 from code_storyteller.engine.map_engine import generate_ascii_map
 from code_storyteller.engine.diff_engine import compute_diff, build_diff_prompt
 from code_storyteller.engine.project_engine import walk_project, build_project_prompt
+from code_storyteller.engine.branch_engine import compare_branches, build_branch_prompt
 from code_storyteller.memory.db import init_db, save_story, get_history, save_rating, save_analogy, get_analogy_memory
 from code_storyteller.export.card_renderer import export_card, render_html
 
@@ -389,6 +390,50 @@ def diff(old_file, new_file, style, no_stream):
     if story:
         console.print()
         console.print(Panel(Markdown(story), border_style="green"))
+
+
+@main.command()
+@click.argument("base")
+@click.option("--head", default="HEAD", help="Head ref (default: HEAD)")
+@click.option("--as", "style", default="heist", help="Story style")
+@click.option("--no-stream", is_flag=True, help="Disable streaming output")
+def branch(base, head, style, no_stream):
+    """Tell the story of all changes between two git branches."""
+    console.print(BANNER)
+
+    try:
+        branch_diff = compare_branches(base, head)
+    except Exception as e:
+        console.print(f"[red]Error comparing branches: {e}[/]")
+        console.print("[yellow]Make sure you're in a git repository and the refs exist.[/]")
+        return
+
+    if not branch_diff.files:
+        console.print(f"[yellow]No supported source file changes between {base} and {head}.[/]")
+        return
+
+    template = get_style_template(style)
+    user_prompt = build_branch_prompt(branch_diff, template, style)
+
+    try:
+        story = _call_llm_raw(template.system_prompt, user_prompt)
+    except EnvironmentError as e:
+        console.print(f"[red]Error: {e}[/]")
+        return
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/]")
+        return
+
+    if story:
+        console.print()
+        console.print(Panel(
+            f"[bold cyan]{template.description}[/] — [dim]{base} → {head} ({len(branch_diff.files)} files)[/]",
+            title=f"🎭 Branch Style: {style.upper()}",
+            border_style="cyan",
+        ))
+        console.print()
+        console.print(Panel(Markdown(story), border_style="green"))
+        save_story(f"branch:{base}..{head}", style, "__all__", story, rating=None)
 
 
 @main.command()

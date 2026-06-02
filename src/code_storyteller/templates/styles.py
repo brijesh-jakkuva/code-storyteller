@@ -15,6 +15,7 @@ class StyleTemplate:
     resolution_frame: str = ""
     diff_prompt_template: str = ""
     project_prompt_template: str = ""
+    branch_prompt_template: str = ""
 
 
 STYLES: dict[str, StyleTemplate] = {}
@@ -27,11 +28,20 @@ _DEFAULT_PROJECT_PROMPT = """Here is a codebase with {num_files} files.
 Tell the story of this project. Entry points: {entry_points}. Focus file: {focus_file}. How do all the pieces connect? What's the data flow? What's the narrative arc from input to output?"""
 
 
+_DEFAULT_BRANCH_PROMPT = """Here are changes between git branches {base} → {head}:
+
+{diff_text}
+
+Narrate the story of these changes. What's the big picture? What arrived, what left, what evolved? Connect the dots across files. Make it a cohesive narrative — not a file-by-file report."""
+
+
 def register_style(style: StyleTemplate):
     if not style.diff_prompt_template:
         style.diff_prompt_template = _DEFAULT_DIFF_PROMPT
     if not style.project_prompt_template:
         style.project_prompt_template = _DEFAULT_PROJECT_PROMPT
+    if not style.branch_prompt_template:
+        style.branch_prompt_template = _DEFAULT_BRANCH_PROMPT
     STYLES[style.name] = style
 
 
